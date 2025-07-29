@@ -15,9 +15,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'nautilus
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'crewai', 'src'))
 
 # Import existing classes - NO MODIFICATIONS NEEDED!
-from nautilus_trader.model.data import Bar, Tick, OrderBookData
+from nautilus_trader.model.data import Bar, QuoteTick, TradeTick, OrderBookDeltas
 from nautilus_trader.model.identifiers import InstrumentId
-from crewai.utilities.events import crewai_event_bus
+from crewai.utilities.events import default_emitter
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +78,8 @@ class DataBridge:
             self._notify_subscribers('bar', market_data)
             
             # Send to CrewAI event bus if available
-            if hasattr(crewai_event_bus, 'emit'):
-                crewai_event_bus.emit('market_data', {
+            if hasattr(default_emitter, 'emit'):
+                default_emitter.emit('market_data', {
                     'type': 'bar',
                     'data': market_data
                 })
@@ -89,12 +89,12 @@ class DataBridge:
         except Exception as e:
             logger.error(f"Error processing bar data: {str(e)}")
             
-    def on_tick(self, tick: Tick):
+    def on_tick(self, tick):
         """
         Process incoming tick data from existing Nautilus Trader.
         
         Args:
-            tick: Nautilus Trader Tick object
+            tick: Nautilus Trader QuoteTick or TradeTick object
         """
         try:
             # Convert Nautilus tick to AI-friendly format
@@ -115,8 +115,8 @@ class DataBridge:
             self._notify_subscribers('tick', tick_data)
             
             # Send to CrewAI event bus if available
-            if hasattr(crewai_event_bus, 'emit'):
-                crewai_event_bus.emit('market_data', {
+            if hasattr(default_emitter, 'emit'):
+                default_emitter.emit('market_data', {
                     'type': 'tick',
                     'data': tick_data
                 })
@@ -126,12 +126,12 @@ class DataBridge:
         except Exception as e:
             logger.error(f"Error processing tick data: {str(e)}")
             
-    def on_order_book(self, order_book: OrderBookData):
+    def on_order_book(self, order_book: OrderBookDeltas):
         """
         Process incoming order book data from existing Nautilus Trader.
         
         Args:
-            order_book: Nautilus Trader OrderBookData object
+            order_book: Nautilus Trader OrderBookDeltas object
         """
         try:
             # Convert order book to AI-friendly format
@@ -145,8 +145,8 @@ class DataBridge:
             self._notify_subscribers('orderbook', book_data)
             
             # Send to CrewAI event bus if available
-            if hasattr(crewai_event_bus, 'emit'):
-                crewai_event_bus.emit('market_data', {
+            if hasattr(default_emitter, 'emit'):
+                default_emitter.emit('market_data', {
                     'type': 'orderbook',
                     'data': book_data
                 })
@@ -171,7 +171,7 @@ class DataBridge:
             'aggregation_source': str(bar.aggregation_source) if hasattr(bar, 'aggregation_source') else None
         }
         
-    def _tick_to_market_data(self, tick: Tick) -> Dict[str, Any]:
+    def _tick_to_market_data(self, tick) -> Dict[str, Any]:
         """Convert Nautilus Tick to AI-friendly market data format."""
         return {
             'instrument_id': str(tick.instrument_id),
@@ -183,8 +183,8 @@ class DataBridge:
             'trade_id': str(tick.trade_id) if hasattr(tick, 'trade_id') else None
         }
         
-    def _orderbook_to_market_data(self, order_book: OrderBookData) -> Dict[str, Any]:
-        """Convert Nautilus OrderBookData to AI-friendly format."""
+    def _orderbook_to_market_data(self, order_book: OrderBookDeltas) -> Dict[str, Any]:
+        """Convert Nautilus OrderBookDeltas to AI-friendly format."""
         try:
             # Extract bid/ask data
             bids = []

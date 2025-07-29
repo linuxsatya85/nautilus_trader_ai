@@ -444,7 +444,9 @@ class RealCrewAIAdapter:
             "goal": agent.goal,
             "backstory": agent.backstory[:100] + "..." if len(agent.backstory) > 100 else agent.backstory,
             "tools_count": len(agent.tools) if agent.tools else 0,
-            "memory_enabled": agent.memory,
+            "memory_enabled": hasattr(agent, 'memory') and agent.memory,
             "verbose": agent.verbose,
-            "agent_type": "real_crewai"
+            "agent_type": "real_crewai",
+            "max_iter": getattr(agent, 'max_iter', None),
+            "allow_delegation": getattr(agent, 'allow_delegation', False)
         }

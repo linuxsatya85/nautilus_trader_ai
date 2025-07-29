@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 # Import REAL Nautilus Trader classes
-from nautilus_trader.core.nautilus_pyo3 import UUID4
+from nautilus_trader.core.uuid import UUID4
 from nautilus_trader.model.identifiers import InstrumentId, ClientId, TraderId, StrategyId, ClientOrderId
 from nautilus_trader.model.data import QuoteTick, TradeTick, Bar
 from nautilus_trader.model.enums import OrderSide, OrderType, TimeInForce, PriceType
@@ -124,7 +124,7 @@ class RealNautilusAdapter:
                 logger.warning(f"Invalid signal {signal}, no order created")
                 return None
                 
-            # Create REAL Nautilus order
+            # Create REAL Nautilus order with all required parameters
             order = MarketOrder(
                 trader_id=self.trader_id,
                 strategy_id=StrategyId(strategy_id.replace("_", "-")),
@@ -133,9 +133,10 @@ class RealNautilusAdapter:
                 order_side=side,
                 quantity=Quantity.from_str(str(quantity)),
                 time_in_force=TimeInForce.IOC,  # Immediate or Cancel
+                init_id=UUID4(),
+                ts_init=dt_to_unix_nanos(datetime.now(timezone.utc)),
                 reduce_only=False,
-                quote_quantity=False,
-                ts_init=dt_to_unix_nanos(datetime.now(timezone.utc))
+                quote_quantity=False
             )
             
             order_key = str(order.client_order_id)
@@ -173,7 +174,7 @@ class RealNautilusAdapter:
                 logger.warning(f"Invalid signal {signal}, no order created")
                 return None
                 
-            # Create REAL Nautilus limit order
+            # Create REAL Nautilus limit order with all required parameters
             order = LimitOrder(
                 trader_id=self.trader_id,
                 strategy_id=StrategyId(strategy_id.replace("_", "-")),
@@ -183,9 +184,10 @@ class RealNautilusAdapter:
                 quantity=Quantity.from_str(str(quantity)),
                 price=Price.from_str(str(price)),
                 time_in_force=TimeInForce.GTC,  # Good Till Cancel
+                init_id=UUID4(),
+                ts_init=dt_to_unix_nanos(datetime.now(timezone.utc)),
                 reduce_only=False,
-                quote_quantity=False,
-                ts_init=dt_to_unix_nanos(datetime.now(timezone.utc))
+                quote_quantity=False
             )
             
             order_key = str(order.client_order_id)
