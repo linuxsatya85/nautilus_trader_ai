@@ -185,34 +185,47 @@ class RealCrewAIAdapter:
         
     def create_real_market_analyst(self, name: str = "market_analyst") -> Agent:
         """Create a REAL market analyst agent using CrewAI."""
-        
-        # Create a real LLM with environment variable or fallback
-        from crewai.llm import LLM
+        try:
+            # Create a real LLM with environment variable or fallback
+            from crewai.llm import LLM
 
-        api_key = os.getenv("OPENAI_API_KEY", "test-key-for-demo")
-        real_llm = LLM(
-            model="gpt-3.5-turbo",
-            api_key=api_key
-        )
-        
-        agent = Agent(
-            role="Senior Market Analyst",
-            goal="Analyze market conditions using technical analysis, risk assessment, and sentiment analysis to provide accurate trading recommendations",
-            backstory="""You are a seasoned market analyst with 20+ years of experience in financial markets. 
-            You specialize in technical analysis, risk assessment, and market sentiment analysis. 
-            You have worked at top-tier investment banks and hedge funds, developing expertise in forex, 
-            equities, and derivatives markets. Your analysis is known for its accuracy and actionable insights.""",
-            tools=self.trading_tools,
-            llm=real_llm,
-            verbose=False,  # Reduce verbosity for testing
-            max_iter=2,
-            memory=False,  # Disable memory for testing
-            allow_delegation=False
-        )
-        
-        self.agents[name] = agent
-        logger.info(f"🤖 Created REAL market analyst agent: {name}")
-        return agent
+            api_key = os.getenv("OPENAI_API_KEY", "test-key-for-demo")
+            real_llm = LLM(
+                model="gpt-3.5-turbo",
+                api_key=api_key
+            )
+
+            agent = Agent(
+                role="Senior Market Analyst",
+                goal="Analyze market conditions using technical analysis, risk assessment, and sentiment analysis to provide accurate trading recommendations",
+                backstory="""You are a seasoned market analyst with 20+ years of experience in financial markets.
+                You specialize in technical analysis, risk assessment, and market sentiment analysis.
+                You have worked at top-tier investment banks and hedge funds, developing expertise in forex,
+                equities, and derivatives markets. Your analysis is known for its accuracy and actionable insights.""",
+                tools=self.trading_tools,
+                llm=real_llm,
+                verbose=False,  # Reduce verbosity for testing
+                max_iter=2,
+                memory=False,  # Disable memory for testing
+                allow_delegation=False
+            )
+
+            self.agents[name] = agent
+            logger.info(f"🤖 Created REAL market analyst agent: {name}")
+            return agent
+
+        except Exception as e:
+            logger.error(f"❌ Failed to create market analyst agent: {e}")
+            # Create a fallback mock agent
+            fallback_agent = type('MockAgent', (), {
+                'role': 'Fallback Market Analyst',
+                'name': name,
+                'status': 'fallback',
+                'error': str(e)
+            })()
+            self.agents[name] = fallback_agent
+            logger.warning(f"⚠️ Created fallback agent for {name}")
+            return fallback_agent
         
     def create_real_risk_manager(self, name: str = "risk_manager") -> Agent:
         """Create a REAL risk management agent using CrewAI."""

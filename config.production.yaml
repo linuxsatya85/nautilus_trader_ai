@@ -1,0 +1,202 @@
+# AI Nautilus Trader - Production Configuration
+# =============================================
+
+system:
+  environment: production
+  debug: false
+  log_level: INFO
+  max_memory_mb: 2048
+  max_cpu_percent: 80
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  workers: 4
+  timeout: 30
+  rate_limit: 100  # requests per minute
+  cors_origins:
+    - "https://yourdomain.com"
+    - "https://app.yourdomain.com"
+
+crewai:
+  # AI Model Configuration
+  default_model: gpt-3.5-turbo
+  fallback_model: gpt-3.5-turbo-16k
+  max_tokens: 4000
+  temperature: 0.1
+  
+  # Agent Configuration
+  max_agents: 5
+  agent_timeout: 30
+  retry_attempts: 3
+  
+  # Memory Configuration
+  memory_enabled: true
+  memory_provider: sqlite
+  memory_retention_days: 30
+
+nautilus:
+  # Trader Configuration
+  trader_id: PROD-AI-TRADER
+  environment: live  # live, sandbox, simulation
+  
+  # Risk Management
+  max_position_size: 100000
+  max_daily_loss: 0.02  # 2%
+  max_drawdown: 0.05    # 5%
+  
+  # Order Management
+  order_timeout: 10
+  max_orders_per_minute: 10
+  slippage_tolerance: 0.001
+
+trading:
+  enabled: true
+  
+  # Default Instruments
+  default_instruments:
+    - EURUSD
+    - GBPUSD
+    - USDJPY
+    - AUDUSD
+    - USDCAD
+  
+  # Trading Hours (UTC)
+  trading_hours:
+    start: "00:00"
+    end: "23:59"
+    timezone: UTC
+  
+  # Strategy Configuration
+  default_strategy: ai_enhanced_trading
+  strategy_timeout: 60
+  
+  # Position Management
+  default_quantity: 10000
+  max_leverage: 30
+  position_sizing: dynamic  # fixed, dynamic, risk_based
+
+risk:
+  # Risk Limits
+  max_drawdown: 0.03        # 3%
+  max_daily_loss: 0.015     # 1.5%
+  position_limit: 0.1       # 10% of portfolio per position
+  correlation_limit: 0.7    # Maximum correlation between positions
+  
+  # Stop Loss Configuration
+  default_stop_loss: 0.02   # 2%
+  trailing_stop: true
+  stop_loss_timeout: 300    # 5 minutes
+  
+  # Risk Monitoring
+  risk_check_interval: 30   # seconds
+  emergency_stop_enabled: true
+  max_consecutive_losses: 5
+
+monitoring:
+  # Logging Configuration
+  log_level: INFO
+  log_rotation: daily
+  log_retention_days: 30
+  
+  # Metrics Collection
+  metrics_enabled: true
+  metrics_interval: 60      # seconds
+  
+  # Alerting
+  alerts_enabled: true
+  alert_channels:
+    - email
+    - webhook
+  
+  # Health Checks
+  health_check_interval: 30 # seconds
+  health_check_timeout: 10  # seconds
+
+database:
+  # Database Configuration
+  provider: sqlite          # sqlite, postgresql, mysql
+  path: data/production.db
+  backup_enabled: true
+  backup_interval: 3600     # 1 hour
+  
+  # Connection Pool
+  max_connections: 10
+  connection_timeout: 30
+  
+  # Data Retention
+  trade_data_retention_days: 365
+  log_data_retention_days: 90
+
+security:
+  # API Security
+  api_key_required: true
+  jwt_secret_key: ${JWT_SECRET_KEY}
+  token_expiry_hours: 24
+  
+  # Rate Limiting
+  rate_limit_enabled: true
+  max_requests_per_minute: 100
+  max_requests_per_hour: 1000
+  
+  # IP Whitelisting
+  ip_whitelist_enabled: false
+  allowed_ips: []
+
+performance:
+  # Performance Optimization
+  cache_enabled: true
+  cache_ttl: 300            # 5 minutes
+  
+  # Async Configuration
+  max_concurrent_tasks: 50
+  task_timeout: 120         # 2 minutes
+  
+  # Memory Management
+  gc_threshold: 0.8         # 80% memory usage
+  max_memory_usage: 2048    # MB
+
+notifications:
+  # Email Notifications
+  email_enabled: false
+  smtp_server: smtp.gmail.com
+  smtp_port: 587
+  smtp_username: ${SMTP_USERNAME}
+  smtp_password: ${SMTP_PASSWORD}
+  
+  # Webhook Notifications
+  webhook_enabled: false
+  webhook_url: ${WEBHOOK_URL}
+  webhook_timeout: 10
+  
+  # Notification Events
+  notify_on:
+    - system_start
+    - system_stop
+    - large_loss
+    - risk_breach
+    - system_error
+
+backup:
+  # Backup Configuration
+  enabled: true
+  interval: 3600            # 1 hour
+  retention_days: 30
+  
+  # Backup Locations
+  local_backup: true
+  cloud_backup: false
+  backup_path: backups/
+  
+  # Compression
+  compress_backups: true
+  compression_level: 6
+
+# Environment Variables Required:
+# - OPENAI_API_KEY
+# - ANTHROPIC_API_KEY (optional)
+# - GOOGLE_API_KEY (optional)
+# - JWT_SECRET_KEY
+# - SMTP_USERNAME (if email enabled)
+# - SMTP_PASSWORD (if email enabled)
+# - WEBHOOK_URL (if webhook enabled)

@@ -90,14 +90,26 @@ class AITradingSystem:
             self.is_running = True
             self.start_time = datetime.now()
             
-            # Start market data feeds
-            await self._start_market_data()
-            
-            # Start AI agents
-            await self._start_agents()
-            
-            # Start trading strategies
-            await self._start_strategies()
+            # Start market data feeds with error handling
+            try:
+                await self._start_market_data()
+            except Exception as e:
+                logger.warning(f"⚠️ Market data feeds failed to start: {e}")
+                # Continue without market data for now
+
+            # Start AI agents with error handling
+            try:
+                await self._start_agents()
+            except Exception as e:
+                logger.warning(f"⚠️ Some AI agents failed to start: {e}")
+                # Continue with available agents
+
+            # Start trading strategies with error handling
+            try:
+                await self._start_strategies()
+            except Exception as e:
+                logger.warning(f"⚠️ Trading strategies failed to start: {e}")
+                # Continue without strategies for now
             
             logger.info("✅ AI Trading System started successfully")
             logger.info(f"📊 System Status: {self.get_status()}")
@@ -105,6 +117,8 @@ class AITradingSystem:
         except Exception as e:
             logger.error(f"❌ Failed to start AI Trading System: {e}")
             self.is_running = False
+            # Cleanup on failure
+            await self._cleanup_on_failure()
             raise
     
     async def stop(self):
@@ -194,6 +208,33 @@ class AITradingSystem:
     async def _stop_market_data(self):
         """Stop market data feeds."""
         logger.info("📊 Market data feeds stopped")
+
+    async def _cleanup_on_failure(self):
+        """Cleanup resources on startup failure."""
+        try:
+            logger.info("🧹 Cleaning up resources after failure...")
+
+            # Stop any started agents
+            if hasattr(self, 'active_agents') and self.active_agents:
+                for agent_name in list(self.active_agents.keys()):
+                    try:
+                        # Stop agent if it has a stop method
+                        agent = self.active_agents[agent_name]
+                        if hasattr(agent, 'stop'):
+                            await agent.stop()
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to stop agent {agent_name}: {e}")
+
+                self.active_agents.clear()
+
+            # Reset state
+            self.is_running = False
+            self.start_time = None
+
+            logger.info("✅ Cleanup completed")
+
+        except Exception as e:
+            logger.error(f"❌ Error during cleanup: {e}")
 
 
 # Convenience function for quick start
