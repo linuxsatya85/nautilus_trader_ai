@@ -179,29 +179,36 @@ def verify_installation():
     
     python_cmd = get_python_command()
     
-    # Test import
-    test_script = """
-import ai_nautilus_trader
-print("✅ Package import successful")
-print(f"✅ Version: {ai_nautilus_trader.get_version()}")
-
-# Check installation
-ai_nautilus_trader.check_installation()
-"""
-    
+    # Test basic import first
+    print(f"Running: {python_cmd} -c \"import ai_nautilus_trader; print('✅ Package import successful'); print(f'✅ Version: {{ai_nautilus_trader.get_version()}}')\"")
     result = run_command(
-        f'{python_cmd} -c "{test_script}"',
+        f'{python_cmd} -c "import ai_nautilus_trader; print(\'✅ Package import successful\'); print(f\'✅ Version: {{ai_nautilus_trader.get_version()}}\')"',
+        capture_output=True
+    )
+    
+    if result.returncode != 0:
+        print_error("❌ Package import failed")
+        print(result.stderr)
+        return False
+    
+    print(result.stdout)
+    
+    # Test installation check
+    print(f"Running: {python_cmd} -c \"import ai_nautilus_trader; ai_nautilus_trader.check_installation()\"")
+    result = run_command(
+        f'{python_cmd} -c "import ai_nautilus_trader; ai_nautilus_trader.check_installation()"',
         capture_output=True
     )
     
     if result.returncode == 0:
-        print_success("Installation verification passed")
+        print_success("✅ Installation verification passed")
         print(result.stdout)
     else:
-        print_error("Installation verification failed")
+        print_error("❌ Installation verification failed")
         print(result.stderr)
         return False
     
+    return True
     return True
 
 
