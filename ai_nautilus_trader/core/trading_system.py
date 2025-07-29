@@ -153,11 +153,11 @@ class AITradingSystem:
         
         try:
             # Create market analyst agent
-            market_analyst = self.crewai_adapter.create_market_analyst()
+            market_analyst = self.crewai_adapter.create_real_market_analyst()
             self.active_agents["market_analyst"] = market_analyst
-            
+
             # Create risk manager agent
-            risk_manager = self.crewai_adapter.create_risk_manager()
+            risk_manager = self.crewai_adapter.create_real_risk_manager()
             self.active_agents["risk_manager"] = risk_manager
             
             logger.info(f"✅ Setup {len(self.active_agents)} default AI agents")
