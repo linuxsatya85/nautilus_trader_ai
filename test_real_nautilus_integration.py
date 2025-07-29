@@ -65,7 +65,7 @@ async def test_real_nautilus_integration():
         
         if buy_order:
             logger.info(f"   ✅ Created BUY order: {buy_order.client_order_id}")
-            logger.info(f"      Side: {buy_order.order_side}, Quantity: {buy_order.quantity}")
+            logger.info(f"      Side: {buy_order.side}, Quantity: {buy_order.quantity}")
         
         # Create SELL order
         sell_order = nautilus_adapter.create_real_limit_order(
@@ -77,7 +77,7 @@ async def test_real_nautilus_integration():
         
         if sell_order:
             logger.info(f"   ✅ Created SELL order: {sell_order.client_order_id}")
-            logger.info(f"      Side: {sell_order.order_side}, Price: {sell_order.price}, Quantity: {sell_order.quantity}")
+            logger.info(f"      Side: {sell_order.side}, Price: {sell_order.price}, Quantity: {sell_order.quantity}")
         
         # Test signal execution
         logger.info("4. Executing REAL Trading Signals...")

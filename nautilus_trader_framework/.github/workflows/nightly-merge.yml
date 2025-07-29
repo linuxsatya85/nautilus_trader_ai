@@ -1,0 +1,143 @@
+name: nightly-merge
+
+permissions: # Principle of least privilege
+  contents: write # Required for merging develop branch into nightly
+  actions: read
+
+on:
+  push:
+    branches: [nightly-merge-test]
+  schedule:
+    - cron: '0 14 * * *' # At 14:00 UTC every day
+
+jobs:
+  check-develop-status:
+    runs-on: ubuntu-latest
+    outputs:
+      develop_status: ${{ steps.check-workflow.outputs.status }}
+    steps:
+      # https://github.com/step-security/harden-runner
+      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+        with:
+          egress-policy: audit
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Fetch develop branch workflows
+        id: fetch-workflows
+        run: |
+          set -eo pipefail
+          url="https://api.github.com/repos/nautechsystems/nautilus_trader/actions/runs?branch=develop&per_page=20"
+          echo "Fetching workflows from: $url"
+          if ! curl -s --max-time 30 -H "Authorization: token ${{ secrets.NIGHTLY_TOKEN }}" "$url" > workflow_runs.json; then
+              echo "Failed to fetch workflows, exiting"
+              exit 1
+          fi
+          echo "Fetched workflow runs:"
+          jq '.' workflow_runs.json
+
+      - name: Check develop branch workflow status
+        id: check-workflow
+        run: |
+          set -eo pipefail
+          matching_workflows=$(jq '
+            .workflow_runs
+            | map(
+                select(
+                  .name == "build"
+                  and .head_branch == "develop"
+                  and .event == "push"
+                )
+              )
+            | sort_by(.created_at)
+            | reverse
+          ' workflow_runs.json) || {
+            echo "Error parsing workflow data"
+            exit 1
+          }
+
+          if [[ -z "$matching_workflows" || "$matching_workflows" == "null" ]]; then
+            echo "No matching workflows found for the develop branch (push events)"
+            exit 1
+          fi
+
+          echo "Matching workflows:"
+          echo "$matching_workflows" | jq '.'
+
+          first_workflow=$(echo "$matching_workflows" | jq '.[0]')
+          if [[ "$first_workflow" == "null" || -z "$first_workflow" ]]; then
+            echo "No valid workflows found, exiting"
+            exit 1
+          fi
+
+          echo "First matching workflow:"
+          echo "$first_workflow"
+          echo "Workflow event type: $(echo "$first_workflow" | jq -r '.event')"
+          echo "Workflow created at: $(echo "$first_workflow" | jq -r '.created_at')"
+
+          # If .status is in_progress, use that; else use .conclusion
+          status=$(echo "$first_workflow" | jq -r 'if .status == "in_progress" then "in_progress" else .conclusion end')
+          echo "status=$status" >> $GITHUB_OUTPUT
+          echo "Last develop branch push workflow status: $status"
+
+          if [[ "$status" == "in_progress" ]]; then
+            echo "The latest workflow for the develop branch is still in progress, exiting"
+            exit 1
+          elif [[ "$status" != "success" ]]; then
+            echo "The latest workflow for the develop branch did not succeed, exiting"
+            exit 1
+          fi
+
+          echo "The latest workflow for the develop branch succeeded, proceeding"
+
+      - name: Cleanup temporary files
+        run: rm -f workflow_runs.json
+
+  nightly-merge:
+    needs: check-develop-status
+    if: needs.check-develop-status.outputs.develop_status == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/step-security/harden-runner
+      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        # https://github.com/actions/checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          token: ${{ secrets.NIGHTLY_TOKEN }}
+          fetch-depth: 0  # Fetch all history for all tags and branches
+
+      - name: Configure Git user
+        run: |
+          git config --global user.name "nautilus-trader-bot"
+          git config --global user.email "bot@nautechsystems.io"
+
+      - name: Nightly merge
+        id: merge
+        # https://github.com/robotology/gh-action-nightly-merge
+        uses: robotology/gh-action-nightly-merge@81570ba03dd370f582bd3f52d47672d29191829f # v1.5.2
+        with:
+          stable_branch: 'develop' # Branch to merge from
+          development_branch: 'nightly' # Branch to merge to
+          allow_ff: true
+          ff_only: true
+          user_name: 'nautilus-trader-bot'
+          user_email: 'bot@nautechsystems.io'
+          push_token: 'NIGHTLY_TOKEN'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTLY_TOKEN: ${{ secrets.NIGHTLY_TOKEN }}
+
+      - name: Check merge result
+        run: |
+          if [[ $(git rev-parse HEAD) == $(git merge-base HEAD develop) ]]; then
+            echo "No changes needed to be merged"
+          else
+            echo "Changes were merged"
+          fi

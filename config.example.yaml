@@ -1,0 +1,29 @@
+# AI Nautilus Trader Configuration
+# Copy this file to config.yaml and customize as needed
+
+system:
+  environment: development
+  debug: true
+
+api:
+  host: 0.0.0.0
+  port: 8000
+
+crewai:
+  # Set your API key in environment variable: OPENAI_API_KEY
+  default_model: gpt-3.5-turbo
+
+nautilus:
+  trader_id: AI-TRADER
+  environment: simulation
+
+trading:
+  enabled: true
+  default_instruments:
+    - EURUSD
+    - GBPUSD
+    - USDJPY
+
+risk:
+  max_drawdown: 0.05
+  max_daily_loss: 0.02

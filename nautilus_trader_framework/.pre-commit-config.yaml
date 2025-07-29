@@ -1,0 +1,187 @@
+repos:
+  ##############################################################################
+  #  General checks
+  ##############################################################################
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: forbid-new-submodules
+      - id: end-of-file-fixer
+        types_or: [rust, cython, python, markdown]
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+      - id: debug-statements
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-illegal-windows-names
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      - id: gitlint
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        description: Checks for common misspellings.
+        types_or: [python, cython, rst, markdown]
+        args: ["-L", "ACN,crate,ot,socio-economic,zar"]
+
+  ##############################################################################
+  #  Custom hooks
+  ##############################################################################
+  - repo: local
+    hooks:
+      - id: check-hidden-chars
+        name: check hidden unicode/control chars
+        description: Fail on hidden control or zero-width unicode characters in source
+        entry: .pre-commit-hooks/check_hidden_chars.sh
+        language: script
+        types_or: [rust, python, cython, toml, markdown, yaml, json, text]
+        files: '\.(rs|py|pyx|toml|md|yml|yaml|json|sh|dockerfile)$|Dockerfile.*'
+
+      - id: check-toml-codegen
+        name: check toml-codegen
+        description: Ensures TOML files don't contain the 'codegen-backend' keyword
+        entry: .pre-commit-hooks/check_toml_codegen.sh
+        language: script
+        files: \.toml$
+
+      - id: check-todo-exclamation
+        name: check todo! markers
+        description: Prevents committing TODO! markers that indicate incomplete work
+        entry: .pre-commit-hooks/check_todo_exclamation.sh
+        language: script
+        types: [text]
+        pass_filenames: false
+
+  ##############################################################################
+  #  Rust formatting and linting
+  ##############################################################################
+  - repo: local
+    hooks:
+      - id: fmt
+        name: cargo fmt
+        description: Format files with cargo fmt.
+        entry: cargo fmt
+        language: system
+        args: ["--all", "--", "--check"]
+        files: '\.(rs|toml)$'
+        types: [file]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy
+        description: Run the Clippy linter on the package.
+        entry: cargo clippy
+        language: system
+        args: ["--benches", "--no-default-features", "--features", "high-precision,ffi,python,extension-module", "--", "-D", "warnings"]
+        files: '\.(rs|toml)$'
+        types: [file]
+        pass_filenames: false
+
+      - id: cargo-doc
+        name: cargo doc
+        description: Check documentation builds without errors or warnings.
+        entry: bash -c 'RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo doc --features "high-precision,ffi,python,extension-module" --no-deps --workspace --quiet'
+        language: system
+        files: '\.(rs|toml)$'
+        types: [file]
+        pass_filenames: false
+
+  ##############################################################################
+  #  Python/Cython formatting and linting
+  ##############################################################################
+  - repo: https://github.com/asottile/add-trailing-comma
+    rev: v3.2.0
+    hooks:
+      - id: add-trailing-comma
+        name: add-trailing-comma
+        types: [python]
+
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        types_or: [python, pyi]
+        entry: "black"
+        args: ["--config", "pyproject.toml"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        name: isort (cython)
+        types_or: [cython]
+        entry: "isort"
+        args: ["--settings-file", "pyproject.toml"]
+
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.7
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]
+        args: [
+          "--black",
+          "--make-summary-multi-line",
+          "--pre-summary-newline",
+          "--blank",
+          "--recursive",
+          "--in-place",
+        ]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.0
+    hooks:
+      - id: mypy
+        exclude: ^python/nautilus_trader/.*__init__\.py$
+        args: [
+          "--config", "pyproject.toml",
+          "--allow-incomplete-defs",
+        ]
+        additional_dependencies: [
+          msgspec,
+          types-frozendict,
+          types-pytz,
+          types-redis,
+          types-requests,
+          types-toml,
+        ]
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.8.1  # uv version
+    hooks:
+      - id: uv-lock
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.1
+    hooks:
+      - id: nbstripout
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.18.1
+    hooks:
+      - id: markdownlint-cli2
+        name: markdownlint
+        entry: markdownlint-cli2
+        args:
+          - --config
+          - .markdownlint.jsonc
+          - --fix
+        files: "\\.md$"
+        exclude: '^(CLA\.md|CONTRIBUTING\.md|RELEASES\.md)$'
